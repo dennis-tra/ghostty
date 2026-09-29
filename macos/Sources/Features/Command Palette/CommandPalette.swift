@@ -263,7 +263,12 @@ private struct CommandTable: View {
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 4) {
+                    // Lazy so that opening the palette only builds the handful
+                    // of rows that are actually on screen. The unfiltered list
+                    // is every command palette entry plus one row per open
+                    // surface, so eagerly building all of them is visible as a
+                    // delay before the palette appears.
+                    LazyVStack(alignment: .leading, spacing: 4) {
                         ForEach(Array(options.enumerated()), id: \.1.id) { index, option in
                             CommandRow(
                                 option: option,

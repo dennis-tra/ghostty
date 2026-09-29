@@ -2,18 +2,23 @@ import SwiftUI
 import GhosttyKit
 
 func sortedTerminalPaletteOptions(_ options: [CommandOption]) -> [CommandOption] {
-    options.sorted { lhs, rhs in
-        let lhsTitle = lhs.title.replacingOccurrences(of: ":", with: "\t")
-        let rhsTitle = rhs.title.replacingOccurrences(of: ":", with: "\t")
-        let comparison = lhsTitle.localizedCaseInsensitiveCompare(rhsTitle)
+    // The normalized titles are computed up front rather than inside the
+    // comparator: there are a few hundred options, and a comparison sort
+    // would otherwise rebuild both strings on every one of the ~n log n
+    // comparisons.
+    let sortable = options.map { option in
+        (title: option.title.replacingOccurrences(of: ":", with: "\t"), option: option)
+    }
+    return sortable.sorted { lhs, rhs in
+        let comparison = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
         if comparison != .orderedSame {
             return comparison == .orderedAscending
         }
-        if let lhsKey = lhs.sortKey, let rhsKey = rhs.sortKey {
+        if let lhsKey = lhs.option.sortKey, let rhsKey = rhs.option.sortKey {
             return lhsKey < rhsKey
         }
         return false
-    }
+    }.map(\.option)
 }
 
 struct TerminalCommandPaletteView: View {
@@ -79,7 +84,7 @@ struct TerminalCommandPaletteView: View {
         // Sort the rest. We replace ":" with a character that sorts before space
         // so that "Foo:" sorts before "Foo Bar:". Use sortKey as a tie-breaker
         // for stable ordering when titles are equal.
-        options.append(contentsOf: sortedTerminalPaletteOptions(jumpOptions + terminalOptions))
+        options.append(contentsOf: sortedTerminalPaletteOptions(jumpOptions + moveTabOptions + terminalOptions))
         return options
     }
 
@@ -124,11 +129,53 @@ struct TerminalCommandPaletteView: View {
         return options
     }
 
+    /// The window controller hosting the surface this palette is presented over.
+    /// Used to decide which window-scoped commands apply.
+    private var windowController: NSWindowController? {
+        surfaceView.window?.windowController
+    }
+
+    /// Commands for moving the current tab between a regular window and the
+    /// quick terminal. These two are inverses of each other, so only the one
+    /// that applies to where the palette was opened is offered.
+    private var moveTabOptions: [CommandOption] {
+        if let quickController = windowController as? QuickTerminalController {
+            let tabManager = quickController.tabManager
+            guard let tab = tabManager.currentTab else { return [] }
+            return [CommandOption(
+                title: "Move Tab to New Window",
+                description: "Move the current quick terminal tab to a new window.",
+                leadingIcon: "macwindow"
+            ) {
+                tabManager.moveTabToNewWindow(tab)
+            }]
+        }
+
+        if let terminalController = windowController as? TerminalController {
+            return [CommandOption(
+                title: "Move Tab to Quick Terminal",
+                description: "Move the current tab to the quick terminal.",
+                leadingIcon: "arrow.up.to.line"
+            ) {
+                terminalController.moveTabToQuickTerminal(nil)
+            }]
+        }
+
+        return []
+    }
+
     /// Custom commands from the command-palette-entry configuration.
     private var terminalOptions: [CommandOption] {
         guard let appDelegate = NSApp.delegate as? AppDelegate else { return [] }
+
+        // In the quick terminal we provide our own "Move Tab to New Window"
+        // above, which operates on quick terminal tabs. Drop the core action
+        // entry so it isn't listed twice.
+        let inQuickTerminal = windowController is QuickTerminalController
+
         return appDelegate.ghostty.config.commandPaletteEntries
             .filter(\.isSupported)
+            .filter { !inQuickTerminal || $0.actionKey != "move_tab_to_new_window" }
             .map { c in
                 let symbols = appDelegate.ghostty.config.keyboardShortcut(for: c.action)?.keyList
                 return CommandOption(
@@ -141,8 +188,14 @@ struct TerminalCommandPaletteView: View {
             }
     }
 
-    /// Commands for jumping to other terminal surfaces.
+    /// Commands for jumping to other terminal surfaces, both in regular
+    /// windows and in the quick terminal.
     private var jumpOptions: [CommandOption] {
+        windowJumpOptions + quickTerminalJumpOptions
+    }
+
+    /// Commands for jumping to surfaces in regular terminal windows.
+    private var windowJumpOptions: [CommandOption] {
         TerminalController.all.flatMap { controller -> [CommandOption] in
             guard let window = controller.window else { return [] }
 
@@ -177,6 +230,53 @@ struct TerminalCommandPaletteView: View {
                         name: Ghostty.Notification.ghosttyPresentTerminal,
                         object: surface
                     )
+                }
+            }
+        }
+    }
+
+    /// Commands for jumping to surfaces in the quick terminal. Only lists the
+    /// quick terminal if it already exists; it is never initialized just to be
+    /// listed here.
+    private var quickTerminalJumpOptions: [CommandOption] {
+        guard let quickController = (NSApp.delegate as? AppDelegate)?.quickControllerIfCreated
+        else { return [] }
+
+        let tabManager = quickController.tabManager
+        return tabManager.tabs.flatMap { tab -> [CommandOption] in
+            tabManager.liveSurfaceTree(for: tab).map { surface in
+                let displayTitle: String
+                if let override = tab.titleOverride, !override.isEmpty {
+                    displayTitle = override
+                } else if !surface.title.isEmpty {
+                    displayTitle = surface.title
+                } else {
+                    displayTitle = tab.title
+                }
+                let pwd = surface.pwd?.abbreviatedPath
+                let subtitle: String? = if let pwd, !displayTitle.contains(pwd) {
+                    pwd
+                } else {
+                    nil
+                }
+
+                return CommandOption(
+                    title: "Focus: \(displayTitle)",
+                    subtitle: subtitle,
+                    leadingIcon: "bolt.fill",
+                    leadingColor: tab.tabColor.displayColor.map { Color($0) },
+                    badge: "Quick Terminal",
+                    sortKey: ObjectIdentifier(surface)
+                ) {
+                    tabManager.selectTab(tab)
+
+                    // `selectTab` restores that tab's own focused surface
+                    // asynchronously, so defer ours to make sure the surface
+                    // the user actually picked is the one left focused. This
+                    // also animates the quick terminal in if it is hidden.
+                    DispatchQueue.main.async {
+                        quickController.focusSurface(surface)
+                    }
                 }
             }
         }
