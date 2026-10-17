@@ -160,7 +160,19 @@ class QuickTerminalTabManager: ObservableObject {
     private func performAddNewTab(registerUndo: Bool) -> QuickTerminalTab? {
         guard let ghostty = controller?.ghostty else { return nil }
 
-        let leaf: Ghostty.SurfaceView = .init(ghostty.app!, baseConfig: nil)
+        // Inherit the working directory (and other per-tab inherited config) from
+        // the currently focused surface, matching how normal-window tabs behave.
+        // We use the controller's own focused surface rather than the core's
+        // focused surface because the latter can lag during animate-in. When there
+        // is no focused surface yet (e.g. the very first tab), we fall back to nil
+        // so the surface uses the configured default working directory.
+        var baseConfig: Ghostty.SurfaceConfiguration?
+        if let parent = controller?.focusedSurface?.surface {
+            baseConfig = Ghostty.SurfaceConfiguration(
+                from: ghostty_surface_inherited_config(parent, GHOSTTY_SURFACE_CONTEXT_TAB))
+        }
+
+        let leaf: Ghostty.SurfaceView = .init(ghostty.app!, baseConfig: baseConfig)
         let surfaceTree: SplitTree<Ghostty.SurfaceView> = .init(view: leaf)
         let tabIndex = tabs.count + 1
         let newTab = QuickTerminalTab(surfaceTree: surfaceTree, title: "Terminal \(tabIndex)")
