@@ -13,6 +13,25 @@ class QuickTerminalController: BaseTerminalController {
     /// The current state of the quick terminal
     private(set) var visible: Bool = false
 
+    /// True while the quick terminal is animating in. During this window the
+    /// key/first-responder state has not yet settled onto the quick terminal (a
+    /// previously focused normal window can still be the key window), so we treat
+    /// the quick terminal as the active terminal for new-surface routing. Bounded
+    /// by the animation duration so it can never stick.
+    private var isAnimatingIn: Bool = false
+
+    /// True when the quick terminal is the terminal the user is currently
+    /// working in, so new-surface actions (e.g. new_tab) should target it rather
+    /// than a normal window. This is true when the quick terminal is visible and
+    /// either it is the key window, it is still animating in, or no normal
+    /// terminal window is key.
+    var isActiveTerminal: Bool {
+        guard visible else { return false }
+        if window?.isKeyWindow == true { return true }
+        if isAnimatingIn { return true }
+        return !(NSApp.keyWindow?.windowController is TerminalController)
+    }
+
     /// The previously running application when the terminal is shown. This is NEVER Ghostty.
     /// If this is set then when the quick terminal is animated out then we will restore this
     /// application to the front.
@@ -429,6 +448,15 @@ class QuickTerminalController: BaseTerminalController {
         guard !visible else { return }
         visible = true
 
+        // Treat new-surface actions as ours while focus settles (see isAnimatingIn).
+        // Bound to the animation duration (plus a small buffer) so it can't stick.
+        isAnimatingIn = true
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + derivedConfig.quickTerminalAnimationDuration + 0.2
+        ) { [weak self] in
+            self?.isAnimatingIn = false
+        }
+
         // Notify the change
         NotificationCenter.default.post(
             name: .quickTerminalDidChangeVisibility,
@@ -487,6 +515,7 @@ class QuickTerminalController: BaseTerminalController {
         // Set our visibility state
         guard visible else { return }
         visible = false
+        isAnimatingIn = false
 
         // Notify the change
         NotificationCenter.default.post(
@@ -626,7 +655,12 @@ class QuickTerminalController: BaseTerminalController {
         window.makeFirstResponder(focusedSurface)
 
         // If our window is already key then we're done!
-        guard !window.isKeyWindow else { return }
+        guard !window.isKeyWindow else {
+            // Focus has settled onto the quick terminal; the animate-in override
+            // for new-surface routing is no longer needed.
+            isAnimatingIn = false
+            return
+        }
 
         // If we don't have retries then we're done
         guard retries > 0 else { return }
@@ -834,6 +868,14 @@ class QuickTerminalController: BaseTerminalController {
     }
 
     @objc private func onNewTab(notification: SwiftUI.Notification) {
+        // The quick terminal owns new_tab when it's the active terminal (see
+        // isActiveTerminal), even if the core routed the action to a stale or nil
+        // surface. Otherwise new_tab falls through to the normal-window path.
+        if isActiveTerminal {
+            tabManager.addNewTab()
+            return
+        }
+
         guard let surfaceView = notification.object as? Ghostty.SurfaceView else { return }
         guard let window = surfaceView.window else { return }
         guard window.windowController is QuickTerminalController else { return }

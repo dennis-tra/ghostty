@@ -809,7 +809,21 @@ class AppDelegate: NSObject,
         _ = TerminalController.newWindow(ghostty, withBaseConfig: config)
     }
 
+    /// True when the quick terminal is the active terminal and should own
+    /// new-surface actions (e.g. new_tab), so we don't route them to a normal
+    /// window. Guarded by `quickControllerInitialized` so we never lazily create
+    /// the quick terminal just to answer this.
+    private var quickTerminalOwnsNewSurface: Bool {
+        quickControllerInitialized && quickController.isActiveTerminal
+    }
+
     @objc private func ghosttyNewTab(_ notification: Notification) {
+        // If the quick terminal is the active terminal, it owns new_tab even when
+        // the core routed the action to a stale/normal surface (focus lags during
+        // animate-in). Let QuickTerminalController.onNewTab handle it instead of
+        // adding a tab to (or opening) a normal window.
+        if quickTerminalOwnsNewSurface { return }
+
         guard let surfaceView = notification.object as? Ghostty.SurfaceView else { return }
         guard let window = surfaceView.window else { return }
 
@@ -1039,6 +1053,14 @@ class AppDelegate: NSObject,
     }
 
     @IBAction func newTab(_ sender: Any?) {
+        // When the quick terminal is the active terminal, route new_tab to it.
+        // Otherwise this would fall to `preferredParent` (which is never the
+        // quick terminal) and, with no normal window open, create a new window.
+        if quickTerminalOwnsNewSurface {
+            quickController.newTab(sender)
+            return
+        }
+
         _ = TerminalController.newTab(
             ghostty,
             from: TerminalController.preferredParent?.window
