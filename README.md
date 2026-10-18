@@ -43,10 +43,10 @@ So for branches below that aren't accepted yet, the branch is linked from its **
 | -------------------------------------------------- | ----------------------------- | ---------- | ----- | ----------------------------------------------------------- | ------ |
 | Quick Terminal: tab support (foundation)           | `feat/quickterm-with-tab`     | https://github.com/ghostty-org/ghostty/discussions/2888          | https://github.com/ghostty-org/ghostty/issues/2329 (non-maintainer)     | https://github.com/ghostty-org/ghostty/pull/5370 (closed), https://github.com/ghostty-org/ghostty/pull/8469 (closed),   https://github.com/ghostty-org/ghostty/pull/9857 (open)                                                        | ◻️     |
 | Global keybinds re-enable after event-tap disable  | _(merged upstream)_           | https://github.com/ghostty-org/ghostty/discussions/11819, https://github.com/ghostty-org/ghostty/discussions/12091          | [#12294](https://github.com/ghostty-org/ghostty/issues/12294)     | https://github.com/ghostty-org/ghostty/pull/12714,  | ✅     |
-| Quick Terminal: new tab opens in a normal window   | `fix/quickterm-new-tab-focus` | —          | —     | —                                                           | ◻️     |
-| Quick Terminal: new tab doesn't inherit pwd        | `fix/quickterm-new-tab-pwd`   | —          | —     | —                                                           | ◻️     |
-| Command palette: move tab to quick terminal / new window | `feat/command-palette-move-tab` | —    | —     | —                                                           | ◻️     |
-| Command palette: jump to quick terminal surfaces   | `feat/command-palette-quickterminal-jump` | — | —   | —                                                           | ◻️     |
+| [Quick Terminal: new tab opens in a normal window](https://github.com/adrum/ghostty/issues/1)   | `fix/quickterm-new-tab-focus` | —          | —     | —                                                           | ◻️     |
+| [Quick Terminal: new tab doesn't inherit pwd](https://github.com/adrum/ghostty/issues/2)        | `fix/quickterm-new-tab-pwd`   | —          | —     | —                                                           | ◻️     |
+| [Command palette: move tab to quick terminal / new window](https://github.com/adrum/ghostty/issues/3) | `feat/command-palette-move-tab` | —    | —     | —                                                           | ◻️     |
+| [Command palette: jump to quick terminal surfaces](https://github.com/adrum/ghostty/issues/4)   | `feat/command-palette-quickterminal-jump` | — | —   | —                                                           | ◻️     |
 
 <!-- LOGO -->
 <h1>
