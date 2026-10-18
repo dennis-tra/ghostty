@@ -1,3 +1,53 @@
+# Austin's Ghostty fork — personal work tracker
+
+> [!IMPORTANT]
+> **This is my personal copy of Ghostty used purely to stage and track fixes I intend to upstream.**
+>
+> I am **not** compiling, distributing, releasing, or forking this as a separate product. It is **not** an official build and nothing here should be downloaded or used in place of Ghostty. For the real thing, go to the upstream project:
+>
+> - Website & downloads: <https://ghostty.org>
+> - Source: <https://github.com/ghostty-org/ghostty>
+> - Docs: <https://ghostty.org/docs>
+>
+> Ghostty and `libghostty` are © Mitchell Hashimoto and the Ghostty contributors. This copy claims no ownership and exists only to prepare contributions back upstream.
+
+### Work tracker
+
+Each change is staged on a **focused, independently reviewable branch** rather than one large change, so it can be reviewed and merged on its own upstream.
+
+The **`next`** branch is the composite — an integration branch that combines everything I'm actively working on into one buildable version. Individual changes are split out of it onto their own branches (below) for upstreaming; `next` itself is never meant to be a PR.
+
+> **Exception:** the Quick Terminal branch is by nature a big set of changes. It serves as the foundation by which all the other branches are focused on. If and when that branch is merged, upstream's `main` will become the base for future work.
+
+#### How these map to Ghostty's contribution flow
+
+Ghostty funnels changes through **Discussion → Issue → Pull Request** (see [`CONTRIBUTING.md`](CONTRIBUTING.md)):
+
+1. **Discussion** — bugs open an [_Issue Triage_](https://github.com/ghostty-org/ghostty/discussions/new?category=issue-triage) discussion; features open a [_Feature Requests, Ideas_](https://github.com/ghostty-org/ghostty/discussions/new?category=feature-requests-ideas) discussion. You do **not** open an Issue directly.
+2. **Issue** — a maintainer promotes an accepted discussion into an actionable Issue. Issues are only created once something is accepted.
+3. **Pull Request** — once an Issue exists, open the PR. If there is no Issue yet, CONTRIBUTING says to _"open a discussion and link to your branch"_ rather than a PR.
+
+#### How this repo's Issues are used
+
+The **Issues** tab here is not a bug tracker for an app you'd run — it's a personal staging area for work I intend to upstream. **An open Issue is a change I'm actively staging and happy to take feedback on; a closed Issue means the conversation has moved to Ghostty's repo** (its Discussion / Issue / PR), not here. How it works:
+
+- I open an Issue here for each change I plan to submit to Ghostty. It captures the problem, the branch, and my working notes while the change is in progress and before it's been accepted upstream.
+- I link any relevant Ghostty **Discussion**, **Issue**, or **PR** from my mirror Issue so you can see the upstream context.
+- Once the change is accepted upstream (an Issue exists in the **Ghostty repo**), I **close** my mirror Issue here and open the PR against Ghostty. The closed Issue stays only as a record/pointer; all discussion now belongs on the upstream Ghostty Issue/PR.
+
+**Feedback:** while an Issue here is **open**, you're welcome to leave feedback on that branch. Once it's **closed**, the discussion has moved upstream — use Ghostty's **Discussion**, **Issue**, or **PR** for that change instead. This keeps the conversation in one place and avoids fragmenting it across the two repos.
+
+So for branches below that aren't accepted yet, the branch is linked from its **Discussion** and does not get a PR until it has an accepted **Issue**. The table tracks where each change is in that pipeline; the `Merged` box is checked once it lands on `ghostty/main`.
+
+| Change                                             | Branch                        | Discussion | Issue | PR                                                          | Merged |
+| -------------------------------------------------- | ----------------------------- | ---------- | ----- | ----------------------------------------------------------- | ------ |
+| Quick Terminal: tab support (foundation)           | `feat/quickterm-with-tab`     | —          | —     | —                                                           | ◻️     |
+| Global keybinds re-enable after event-tap disable  | _(merged upstream)_           | https://github.com/ghostty-org/ghostty/discussions/11819, https://github.com/ghostty-org/ghostty/discussions/12091          | [#12294](https://github.com/ghostty-org/ghostty/issues/12294)     | https://github.com/ghostty-org/ghostty/pull/12714,  | ✅     |
+| Quick Terminal: new tab opens in a normal window   | `fix/quickterm-new-tab-focus` | —          | —     | —                                                           | ◻️     |
+| Quick Terminal: new tab doesn't inherit pwd        | `fix/quickterm-new-tab-pwd`   | —          | —     | —                                                           | ◻️     |
+| Command palette: move tab to quick terminal / new window | `feat/command-palette-move-tab` | —    | —     | —                                                           | ◻️     |
+| Command palette: jump to quick terminal surfaces   | `feat/command-palette-quickterminal-jump` | — | —   | —                                                           | ◻️     |
+
 <!-- LOGO -->
 <h1>
 <p align="center">
